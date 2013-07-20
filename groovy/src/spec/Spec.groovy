@@ -1,62 +1,66 @@
-package spec;
-import org.junit.Assert
+package spec
+
+import org.junit.Assert;
+
 class Spec {
   static {
-    ExpandoMetaClass.enableGlobally()
     Object.metaClass {
-      deberia = { condicion -> 
-        condicion(delegate) 
+      deberia = {
+        verbo -> new Condicion(valor: delegate)
       }
-      y = { delegate.deberia(it) } 
+      y = {
+        verbo -> delegate.deberia(verbo)
+      }
     }
   }
   
-  static ser = {it -> new CondicionPorValor(valor: it) }
-  static tener = ser //:P
-  static explotar =  {it ->
-    try {
-      it()
-      Assert.fail("Deberia explotar")
-    } catch(e) {
-      new CondicionPorExcepcion(excepcion: e)
-    }
-  }
+  static ser = null
   
-}
-class CondicionPorExcepcion {
-  def excepcion
-  def con(claseDeExcepcion) {
-    Assert.assertEquals("${excepcion} deberia ser de clase ${claseDeExcepcion}", claseDeExcepcion, excepcion.class)
-    excepcion
+  static especificacion(bloque) {
+    def builder = new EspecificacionBuilder()
+    builder.with(bloque)
+    builder.evaluar()
   }
 }
 
-class CondicionPorValor {
+
+class Condicion {
   def valor
   
-  def mensaje(x) {
-    validar "tener mensaje ${x}", { x == it.message }
+  def menorQue(otroValor) {
+    validar("${valor} deberia ser menor que ${otroValor}", valor < otroValor)
   }
   
-  def igualA(x) {
-    validar "ser igual a ${x}", { x == it }
+  def mayorQue(otroValor) {
+    validar("${valor} deberia ser mayor que ${otroValor}", valor > otroValor)
   }
   
-  def mayorQue(x) {
-    validar "ser mayor que ${x}", { it > x }
-  }
   
-  def menorQue(x) {
-    validar "ser menor que ${x}", { it < x }
-  }
-  
-  def unoDe(...elementos) {
-    validar "ser uno de ${elementos}", {it in elementos}
+  def igual(otroValor) {
+    validar("${valor} deberia ser igual a ${otroValor}", valor == otroValor)
   }
   
   def validar(mensaje, condicion) {
-    Assert.assertTrue("${valor} deberia ${mensaje}", condicion(valor))
+    Assert.assertTrue(
+      mensaje,
+      condicion)
     valor
   }
   
+}
+
+class EspecificacionBuilder {
+  def valores
+  def bloque
+  
+  def siendo(bloque) {
+    this.valores = bloque()
+  }
+  
+  def esperando(bloque) {
+    this.bloque = bloque
+  }
+  def evaluar() { 
+    valores.each { it.with(bloque)  }
+  }
 }
